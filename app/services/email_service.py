@@ -16,7 +16,7 @@ from app.utils.helpers import get_logger, replace_template_vars
 logger = get_logger(__name__)
 
 SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_PORT = 465
 
 
 async def send_certificate_email(
@@ -70,6 +70,6 @@ async def send_certificate_email(
         port=SMTP_PORT,
         username=settings.GMAIL_ADDRESS,
         password=settings.GMAIL_APP_PASSWORD,
-        start_tls=True,
+        use_tls=True, 
     )
     logger.info(f"Email sent successfully to {recipient_email}")
