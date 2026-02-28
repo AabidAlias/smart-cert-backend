@@ -21,9 +21,12 @@ class Settings:
     MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "smart_certificates")
 
-    # Gmail
+    # Gmail (kept for reference but no longer used for sending)
     GMAIL_ADDRESS: str = os.getenv("GMAIL_ADDRESS", "")
     GMAIL_APP_PASSWORD: str = os.getenv("GMAIL_APP_PASSWORD", "")
+
+    # Resend API (replaces Gmail SMTP)
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
 
     # Paths
     FONTS_DIR: Path = BASE_DIR / "fonts"

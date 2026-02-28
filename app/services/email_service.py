@@ -1,22 +1,15 @@
 """
 services/email_service.py
-Async email sending via Gmail SMTP with App Password support.
+Async email sending via Resend API (HTTP-based, works on Render free plan).
 """
-import asyncio
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import base64
+import resend
 from pathlib import Path
-
-import aiosmtplib
 
 from app.core.config import settings
 from app.utils.helpers import get_logger, replace_template_vars
 
 logger = get_logger(__name__)
-
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 465
 
 
 async def send_certificate_email(
@@ -27,49 +20,35 @@ async def send_certificate_email(
     pdf_path: str | Path,
 ) -> None:
     """
-    Send a single certificate email asynchronously.
-
-    Args:
-        recipient_name: Full name of the recipient
-        recipient_email: Recipient's email address
-        subject_template: Email subject (may contain {{name}})
-        body_template: Email body (may contain {{name}})
-        pdf_path: Path to the PDF certificate attachment
-
-    Raises:
-        Exception: If sending fails
+    Send a single certificate email via Resend API.
     """
     subject = replace_template_vars(subject_template, recipient_name)
-    body = replace_template_vars(body_template, recipient_name)
+    body    = replace_template_vars(body_template, recipient_name)
     pdf_path = Path(pdf_path)
 
-    # Build MIME message
-    message = MIMEMultipart()
-    message["From"] = settings.GMAIL_ADDRESS
-    message["To"] = recipient_email
-    message["Subject"] = subject
-    message.attach(MIMEText(body, "plain"))
-
-    # Attach PDF
     if not pdf_path.exists():
-        raise FileNotFoundError(f"PDF attachment not found: {pdf_path}")
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
+    # Read and base64 encode the PDF
     with open(pdf_path, "rb") as f:
-        part = MIMEApplication(f.read(), _subtype="pdf")
-        part.add_header(
-            "Content-Disposition",
-            "attachment",
-            filename=f"certificate_{recipient_name.replace(' ', '_')}.pdf",
-        )
-        message.attach(part)
+        pdf_data = base64.b64encode(f.read()).decode("utf-8")
 
-    # Send via Gmail SMTP
-    await aiosmtplib.send(
-        message,
-        hostname=SMTP_HOST,
-        port=SMTP_PORT,
-        username=settings.GMAIL_ADDRESS,
-        password=settings.GMAIL_APP_PASSWORD,
-        use_tls=True, 
-    )
-    logger.info(f"Email sent successfully to {recipient_email}")
+    filename = f"certificate_{recipient_name.replace(' ', '_')}.pdf"
+
+    resend.api_key = settings.RESEND_API_KEY
+
+    params = {
+        "from": f"Certificates <onboarding@resend.dev>",
+        "to": [recipient_email],
+        "subject": subject,
+        "text": body,
+        "attachments": [
+            {
+                "filename": filename,
+                "content": pdf_data,
+            }
+        ],
+    }
+
+    resend.Emails.send(params)
+    logger.info(f"Email sent via Resend to {recipient_email}")
