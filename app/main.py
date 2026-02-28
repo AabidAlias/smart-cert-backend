@@ -50,7 +50,12 @@ app = FastAPI(
 # ── CORS middleware ────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN],
+    allow_origins=[
+        settings.FRONTEND_ORIGIN,           # from .env / Render env variable
+        "https://automatecirt.vercel.app",  # your Vercel production URL
+        "http://localhost:5173",            # local development
+        "http://localhost:3000",            # alternate local dev port
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
